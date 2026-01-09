@@ -20,6 +20,9 @@ cat allowed_licenses.txt
 # Run Scancode to scan the codebase
 echo "Running Scancode on /github/workspace..."
 scancode --license --json-pp scan_results.json /github/workspace
+# The below can be uncommented for the action to report the results directly in the action logs
+# IF UNCOMMENTING BELOW COMMENT LINE 22
+# scancode --license --json-pp - /github/workspace
 
 echo "Scancode completed."
 
