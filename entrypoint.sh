@@ -3,7 +3,7 @@
 set -euo pipefail
 
 # Accept the allowed licenses as the first argument
-ALLOWED_LICENSES_INPUT="$1"
+ALLOWED_LICENSES_INPUT="${1:-}"
 
 # Check if allowed_licenses input is provided
 if [ -z "$ALLOWED_LICENSES_INPUT" ]; then
@@ -19,15 +19,21 @@ cat allowed_licenses.txt
 
 # Run Scancode to scan the codebase
 echo "Running Scancode on /github/workspace..."
+COUNT=$(find . \
+  -type d \( -name .git -o -name .hg -o -name .svn \) -prune -false \
+  -o -type f | wc -l)
+echo "/github/workspace contains: $COUNT files"
 # scancode --license --info -n 4 -v --json-pp scan_results.json /github/workspace
 # The below can be uncommented for the action to report the results directly in the action logs
 # IF UNCOMMENTING BELOW COMMENT LINE 22
 # scancode --license --info -n 4 --verbose --json-pp - /github/workspace
 # scancode --license --verbose --json-pp - /github/workspace
-scancode --license --processes 1 --verbose --json-pp result.json /github/workspace
 
+( while sleep 60; do echo "Scancode still running..."; done ) &
+HB=$!
+trap 'kill $HB 2>/dev/null || true' EXIT
 
-
+scancode --license --processes 4 --json-pp scan_results.json /github/workspace
 
 echo "Scancode completed."
 
