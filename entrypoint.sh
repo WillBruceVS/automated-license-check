@@ -33,7 +33,7 @@ HB=$!
 trap 'kill $HB 2>/dev/null || true' EXIT
 
 # Run ScanCode; output JSON to stdout (so it does not create files accidentally in CI)
-scancode --license --processes 4 --json-pp scan_results.json /github/workspace
+scancode --license --processes 4 --json-pp - /github/workspace
 
 echo "Scancode completed."
 
