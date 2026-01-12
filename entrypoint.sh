@@ -14,8 +14,12 @@ if [ ! -f "$REPO_WORKSPACE_LICENCE_FILE_PATH" ]; then
     exit 1
 fi
 
-# Normalize allowed licenses: lowercase, sorted, unique
-tr '[:upper:]' '[:lower:]' < "$REPO_WORKSPACE_LICENCE_FILE_PATH" | sort | uniq > allowed_licenses_normalized.txt
+# Normalize allowed licenses: lowercase, split commas into lines, trim, sort, unique
+tr '[:upper:]' '[:lower:]' < "$REPO_WORKSPACE_LICENCE_FILE_PATH" \
+  | tr ',' '\n' \
+  | sed 's/^[[:space:]]*//; s/[[:space:]]*$//' \
+  | sed '/^$/d' \
+  | sort -u > allowed_licenses_normalized.txt
 
 echo "Allowed Licenses:"
 cat allowed_licenses_normalized.txt
