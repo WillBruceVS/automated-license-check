@@ -17,8 +17,3 @@ runs:
   image: "Dockerfile"
   args:
     - ${{ inputs.allowed_licenses }}
-
-permissions:
-  contents: read  # Read access to repo contents
-
-license: "MIT"
