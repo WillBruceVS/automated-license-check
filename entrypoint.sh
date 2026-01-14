@@ -54,6 +54,10 @@ LICENSE_DETECTIONS_COUNT=$(jq '.license_detections | length' scan_results.json)
 
 if [ "$LICENSE_DETECTIONS_COUNT" -eq 0 ]; then
     echo "No licenses detected in the scanned files."
+
+    # Optionally create an empty file to avoid downstream errors
+    touch detected_licenses.txt
+
     exit 1
 fi
 
