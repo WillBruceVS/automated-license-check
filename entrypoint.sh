@@ -57,8 +57,6 @@ if [ "$LICENSE_DETECTIONS_COUNT" -eq 0 ]; then
 
     # Optionally create an empty file to avoid downstream errors
     touch detected_licenses.txt
-
-    exit 1
 fi
 
 jq -r '
