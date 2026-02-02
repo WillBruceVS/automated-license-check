@@ -2,6 +2,34 @@
 
 set -euo pipefail
 
+ALLOWED_LICENSES="$1"
+CHANGED_FILES_PATH="$2"
+
+echo "Changed files list: ${CHANGED_FILES_PATH:-<none>}"
+
+SCAN_TARGETS=()
+
+if [[ -n "$CHANGED_FILES_PATH" && -f "$CHANGED_FILES_PATH" ]]; then
+    echo "Using changed files list:"
+    cat "$CHANGED_FILES_PATH"
+
+    # Filter only files that actually exist
+    while IFS= read -r file; do
+        if [[ -f "/github/workspace/$file" ]]; then
+            SCAN_TARGETS+=("/github/workspace/$file")
+        fi
+    done < "$CHANGED_FILES_PATH"
+
+    if [[ ${#SCAN_TARGETS[@]} -eq 0 ]]; then
+        echo "No valid changed files to scan. Exiting cleanly."
+        exit 0
+    fi
+
+else
+    echo "No changed files provided; scanning entire workspace."
+    SCAN_TARGETS=("/github/workspace")
+fi
+
 REPO_WORKSPACE_PATH="/github/workspace"
 LICENSE_FILE_PATH="/allowed_licenses.txt"
 
@@ -36,8 +64,13 @@ echo "/github/workspace contains: $COUNT files"
 HB=$!
 trap 'kill $HB 2>/dev/null || true' EXIT
 
-# Run ScanCode; output JSON to stdout (so it does not create files accidentally in CI)
-scancode --license --verbose --processes 8 --json-pp - /github/workspace > scan_results.json
+# # Run ScanCode; output JSON to stdout (so it does not create files accidentally in CI)
+# scancode --license --verbose --processes 8 --json-pp - /github/workspace > scan_results.json
+
+echo "Running Scancode on:"
+printf '%s\n' "${SCAN_TARGETS[@]}"
+
+scancode --license --verbose --processes 8 --json-pp - "${SCAN_TARGETS[@]}" > scan_results.json
 
 echo ""
 echo "Scancode completed."

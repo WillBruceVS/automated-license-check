@@ -11,9 +11,14 @@ inputs:
     description: "Comma-separated list of allowed licenses (e.g., MIT, Apache-2.0, BSD-3-Clause)."
     required: false
     default: "MIT, Apache-2.0, BSD-3-Clause"
+  changed_files:
+    description: "Path to a text file listing changed files to scan (one per line)."
+    required: false
+    default: ""
 
 runs:
   using: "docker"
   image: "Dockerfile"
   args:
     - ${{ inputs.allowed_licenses }}
+    - ${{ inputs.changed_files }}
