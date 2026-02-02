@@ -7,10 +7,6 @@ branding:
   icon: "shield"
 
 inputs:
-  allowed_licenses:
-    description: "Comma-separated list of allowed licenses (e.g., MIT, Apache-2.0, BSD-3-Clause)."
-    required: false
-    default: "MIT, Apache-2.0, BSD-3-Clause"
   changed_files:
     description: "Path to a text file listing changed files to scan (one per line)."
     required: false
