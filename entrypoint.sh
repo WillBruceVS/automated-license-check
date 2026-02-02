@@ -2,8 +2,7 @@
 
 set -euo pipefail
 
-ALLOWED_LICENSES="$1"
-CHANGED_FILES_PATH="$2"
+CHANGED_FILES_PATH="$1"
 
 echo "Changed files list: ${CHANGED_FILES_PATH:-<none>}"
 
