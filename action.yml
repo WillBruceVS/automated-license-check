@@ -16,5 +16,4 @@ runs:
   using: "docker"
   image: "Dockerfile"
   args:
-    - ${{ inputs.allowed_licenses }}
     - ${{ inputs.changed_files }}
