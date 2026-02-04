@@ -51,12 +51,26 @@ tr '[:upper:]' '[:lower:]' < "$REPO_WORKSPACE_LICENCE_FILE_PATH" \
 echo "Allowed Licenses:"
 cat allowed_licenses_normalized.txt
 
-# Run Scancode to scan the codebase
-echo "Running Scancode on /github/workspace..."
+# Filter out *.pdf and *.csv from SCAN_TARGETS
+FILTERED_TARGETS=()
+for target in "${SCAN_TARGETS[@]}"; do
+    if [[ ! "$target" =~ \.pdf$ && ! "$target" =~ \.csv$ ]]; then
+        FILTERED_TARGETS+=("$target")
+    fi
+done
+
+# Count excluding VCS dirs and pdf/csv (case-insensitive)
 COUNT=$(find . \
   -type d \( -name .git -o -name .hg -o -name .svn \) -prune -false \
-  -o -type f | wc -l)
+  -o -type f \
+  ! -iname "*.pdf" ! -iname "*.csv" \
+  | wc -l)
+  
+echo "/github/workspace contains (excluding pdf/csv): $COUNT files"
 echo "/github/workspace contains: $COUNT files"
+
+# Run Scancode to scan the codebase
+echo "Running Scancode on /github/workspace..."
 
 # Heartbeat for long-running scans
 ( while sleep 60; do echo "Scancode still running..."; done ) &
@@ -67,7 +81,7 @@ trap 'kill $HB 2>/dev/null || true' EXIT
 # scancode --license --verbose --processes 8 --json-pp - /github/workspace > scan_results.json
 
 echo "Running Scancode on:"
-printf '%s\n' "${SCAN_TARGETS[@]}"
+printf '%s\n' "${FILTERED_TARGETS[@]}"
 
 scancode --license --verbose --processes 8 --json-pp - "${SCAN_TARGETS[@]}" > scan_results.json
 
