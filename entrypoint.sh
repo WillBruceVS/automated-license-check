@@ -54,7 +54,7 @@ cat allowed_licenses_normalized.txt
 # Filter out *.pdf and *.csv from SCAN_TARGETS
 FILTERED_TARGETS=()
 for target in "${SCAN_TARGETS[@]}"; do
-    if [[ ! "$target" =~ \.pdf$ && ! "$target" =~ \.csv$ ]]; then
+    if [[ ! "$target" =~ \.pdf$ && ! "$target" =~ \.csv$ && ! "$target" =~ \.map$ ]]; then
         FILTERED_TARGETS+=("$target")
     fi
 done
@@ -63,11 +63,11 @@ done
 COUNT=$(find . \
   -type d \( -name .git -o -name .hg -o -name .svn \) -prune -false \
   -o -type f \
-  ! -iname "*.pdf" ! -iname "*.csv" \
+  ! -iname "*.pdf" ! -iname "*.csv" ! -iname "*.map" \
   | wc -l)
-  
-echo "/github/workspace contains (excluding pdf/csv): $COUNT files"
+
 echo "/github/workspace contains: $COUNT files"
+echo "/github/workspace will scan $COUNT files"
 
 # Run Scancode to scan the codebase
 echo "Running Scancode on /github/workspace..."
