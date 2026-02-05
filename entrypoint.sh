@@ -59,14 +59,14 @@ for target in "${SCAN_TARGETS[@]}"; do
     fi
 done
 
-# Count excluding VCS dirs and pdf/csv (case-insensitive)
-COUNT=$(find . \
-  -type d \( -name .git -o -name .hg -o -name .svn \) -prune -false \
-  -o -type f \
-  ! -iname "*.pdf" ! -iname "*.csv" ! -iname "*.map"  ! -iname "*.txt" \
-  | wc -l)
+# # Count excluding VCS dirs and pdf/csv (case-insensitive)
+# COUNT=$(find . \
+#   -type d \( -name .git -o -name .hg -o -name .svn \) -prune -false \
+#   -o -type f \
+#   ! -iname "*.pdf" ! -iname "*.csv" ! -iname "*.map"  ! -iname "*.txt" \
+#   | wc -l)
 
-echo "/github/workspace will scan $COUNT files"
+# echo "/github/workspace will scan $COUNT files"
 
 # Run Scancode to scan the codebase
 echo "Running Scancode on /github/workspace..."
