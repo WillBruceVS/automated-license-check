@@ -83,7 +83,7 @@ trap 'kill $HB 2>/dev/null || true' EXIT
 echo "Running Scancode on:"
 printf '%s\n' "${FILTERED_TARGETS[@]}"
 
-scancode --license --verbose --processes 8 --json-pp - "${SCAN_TARGETS[@]}" > scan_results.json
+scancode --license --verbose --processes 8 --timeout 900 --json-pp - "${FILTERED_TARGETS[@]}" > scan_results.json
 
 echo ""
 echo "Scancode completed."
