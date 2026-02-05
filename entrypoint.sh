@@ -54,7 +54,7 @@ cat allowed_licenses_normalized.txt
 # Filter out *.pdf and *.csv from SCAN_TARGETS
 FILTERED_TARGETS=()
 for target in "${SCAN_TARGETS[@]}"; do
-    if [[ ! "$target" =~ \.pdf$ && ! "$target" =~ \.csv$ && ! "$target" =~ \.map$ ]]; then
+    if [[ ! "$target" =~ \.pdf$ && ! "$target" =~ \.csv$ && ! "$target" =~ \.map$ && ! "$target" =~ \.txt$ ]]; then
         FILTERED_TARGETS+=("$target")
     fi
 done
@@ -63,7 +63,7 @@ done
 COUNT=$(find . \
   -type d \( -name .git -o -name .hg -o -name .svn \) -prune -false \
   -o -type f \
-  ! -iname "*.pdf" ! -iname "*.csv" ! -iname "*.map" \
+  ! -iname "*.pdf" ! -iname "*.csv" ! -iname "*.map"  ! -iname "*.txt" \
   | wc -l)
 
 echo "/github/workspace will scan $COUNT files"
