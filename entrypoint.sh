@@ -66,7 +66,6 @@ COUNT=$(find . \
   ! -iname "*.pdf" ! -iname "*.csv" ! -iname "*.map" \
   | wc -l)
 
-echo "/github/workspace contains: $COUNT files"
 echo "/github/workspace will scan $COUNT files"
 
 # Run Scancode to scan the codebase
