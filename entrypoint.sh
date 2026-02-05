@@ -15,7 +15,8 @@ if [[ -n "$CHANGED_FILES_PATH" && -f "$CHANGED_FILES_PATH" ]]; then
     # Filter only files that actually exist
     while IFS= read -r file; do
         if [[ -f "/github/workspace/$file" ]]; then
-            SCAN_TARGETS+=("/github/workspace/$file")
+            # SCAN_TARGETS+=("/github/workspace/$file")
+            SCAN_TARGETS+=("$file")
         fi
     done < "$CHANGED_FILES_PATH"
 
