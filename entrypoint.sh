@@ -69,8 +69,8 @@ done
 
 # echo "/github/workspace will scan $COUNT files"
 
-# Run Scancode to scan the codebase
-echo "Running Scancode on /github/workspace..."
+# # Run Scancode to scan the codebase
+# echo "Running Scancode on /github/workspace..."
 
 # Heartbeat for long-running scans
 ( while sleep 60; do echo "Scancode still running..."; done ) &
