@@ -60,6 +60,12 @@ for target in "${SCAN_TARGETS[@]}"; do
     fi
 done
 
+# NEW: Handle edge case where only ignored file types were changed
+if [[ ${#FILTERED_TARGETS[@]} -eq 0 ]]; then
+    echo "All changed files were ignored (txt/csv/pdf/map). Nothing to scan."
+    exit 0
+fi
+
 # # Count excluding VCS dirs and pdf/csv (case-insensitive)
 # COUNT=$(find . \
 #   -type d \( -name .git -o -name .hg -o -name .svn \) -prune -false \
