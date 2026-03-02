@@ -149,7 +149,9 @@ else
     | sed 's/ AND / /g; s/ OR / /g' \
     | tr -d '()' \
     | xargs -n1 \
-    | sort -u > detected_licenses.txt
+    | sort -u \
+    | grep -vE '^(and|or)$' \
+    > detected_licenses.txt
 fi
 
 echo "Detected Licenses:"
