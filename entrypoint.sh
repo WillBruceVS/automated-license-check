@@ -123,7 +123,9 @@ if [[ "$FULL_SCAN" == true ]]; then
     | sed 's/ AND / /g; s/ OR / /g' \
     | tr -d '()' \
     | xargs -n1 \
-    | sort -u > detected_licenses.txt
+    | sort -u \
+    | grep -vE '^(and|or)$' \
+    > detected_licenses.txt
 else
     echo "Partial scan: filtering detections to changed files."
     targets_rel_to_common="targets_rel_to_common.txt"
