@@ -3,14 +3,14 @@ set -euo pipefail
 
 CHANGED_FILES_PATH="${1:-}"
 
-echo "Changed files list input: ${CHANGED_FILES_PATH:-<none>}"
-
 REPO_ROOT="/github/workspace"
 ALLOWED_LICENSES_FILE="$REPO_ROOT/allowed_licenses.txt"
 
-###########################################################
-# Validate allowed licenses file
-###########################################################
+echo "Changed files list input: ${CHANGED_FILES_PATH:-<none>}"
+
+###############################################################################
+# Allowed licenses file
+###############################################################################
 if [[ ! -f "$ALLOWED_LICENSES_FILE" ]]; then
     echo "Error: allowed_licenses.txt not found at repository root."
     exit 1
@@ -25,9 +25,10 @@ tr '[:upper:]' '[:lower:]' < "$ALLOWED_LICENSES_FILE" \
 echo "Allowed licenses:"
 cat allowed_licenses_normalized.txt
 
-###########################################################
-# Determine scan mode: changed files only OR full repo
-###########################################################
+
+###############################################################################
+# Determine scan mode
+###############################################################################
 SCAN_TARGETS=()
 FULL_SCAN=false
 
@@ -40,48 +41,54 @@ if [[ -n "$CHANGED_FILES_PATH" && -f "$CHANGED_FILES_PATH" ]]; then
     done < "$CHANGED_FILES_PATH"
 
     if [[ ${#SCAN_TARGETS[@]} -eq 0 ]]; then
-        echo "No valid changed files found; fallback to FULL SCAN."
+        echo "Changed-file list exists but no valid files found → full scan fallback."
         FULL_SCAN=true
     fi
 else
-    echo "No changed file list provided; FULL SCAN enabled."
+    echo "No changed-file list provided → full scan enabled."
     FULL_SCAN=true
 fi
 
-###########################################################
-# FILTER OUT NON-SOURCE FILES (PDF/TXT/MAP/CSV)
-###########################################################
+
+###############################################################################
+# Filter out useless filetypes
+###############################################################################
 if [[ "$FULL_SCAN" == false ]]; then
     FILTERED_TARGETS=()
     for f in "${SCAN_TARGETS[@]}"; do
-        if [[ ! "$f" =~ \.(pdf|csv|map|txt)$ ]]; then
-            FILTERED_TARGETS+=("$f")
-        fi
+        [[ ! "$f" =~ \.(pdf|csv|map|txt)$ ]] && FILTERED_TARGETS+=("$f")
     done
 
     if [[ ${#FILTERED_TARGETS[@]} -eq 0 ]]; then
-        echo "Changed files exist but all were filtered out. Exiting cleanly."
+        echo "All changed files filtered out. Nothing to scan."
         exit 0
     fi
 fi
 
-###########################################################
-# SCAN EXECUTION
-###########################################################
+
+###############################################################################
+# FULL SCAN MODE
+###############################################################################
 if [[ "$FULL_SCAN" == true ]]; then
-    echo "=== FULL REPOSITORY SCAN MODE ==="
-    SCAN_DIR="$REPO_ROOT"
+    echo "=== FULL SCAN MODE ==="
 
     scancode --license \
              --processes 8 \
              --timeout 900 \
              --verbose \
-             --json-pp scan_results.json \
-             "$SCAN_DIR"
+             --json-pp scan_results_full.json \
+             "$REPO_ROOT"
+
+    echo "Extracting license_detections → scan_results.json"
+
+    jq '.license_detections // []' scan_results_full.json > scan_results.json
 
 else
-    echo "=== PARTIAL SCAN: SCANNING ONLY CHANGED FILES ==="
-    echo "Files to scan:"
+
+###############################################################################
+# PARTIAL SCAN: ONLY CHANGED FILES
+###############################################################################
+    echo "=== PARTIAL SCAN MODE (scanning changed files only) ==="
     printf '%s\n' "${FILTERED_TARGETS[@]}"
 
     mkdir -p sc_tmp
@@ -89,7 +96,10 @@ else
 
     for t in "${FILTERED_TARGETS[@]}"; do
         abs="$REPO_ROOT/$t"
+        echo ""
+        echo "---------------------------------------------"
         echo "Running ScanCode on: $abs"
+        echo "---------------------------------------------"
 
         scancode --license \
                  --processes 4 \
@@ -97,22 +107,35 @@ else
                  --json-pp sc_tmp/out.json \
                  "$abs"
 
-        jq -s '.[0] + .[1]' sc_tmp/combined.json sc_tmp/out.json \
-          > sc_tmp/merged.json
+        # Append only license detections
+        jq -s '
+          .[0] as $combined
+          | .[1].license_detections as $new
+          | ($combined + ($new // []))
+        ' sc_tmp/combined.json sc_tmp/out.json > sc_tmp/merged.json
 
         mv sc_tmp/merged.json sc_tmp/combined.json
     done
 
-    mv sc_tmp/combined.json scan_results.json
+    cp sc_tmp/combined.json scan_results.json
+
 fi
 
-echo "ScanCode completed."
 
-###########################################################
-# EXTRACT LICENSE EXPRESSIONS
-###########################################################
+###############################################################################
+# Validate result JSON exists
+###############################################################################
+if [[ ! -s scan_results.json ]]; then
+    echo "Error: scan_results.json missing or empty."
+    exit 1
+fi
+
+
+###############################################################################
+# Extract licenses
+###############################################################################
 jq -r '
-  .license_detections[].license_expression? // empty
+  .[].license_expression? // empty
 ' scan_results.json \
 | tr '[:upper:]' '[:lower:]' \
 | sed 's/ AND / /g; s/ OR / /g' \
@@ -130,9 +153,10 @@ if [[ ! -s detected_licenses.txt ]]; then
     exit 1
 fi
 
-###########################################################
-# COMPARE AGAINST ALLOWED LICENSES
-###########################################################
+
+###############################################################################
+# Compare to allowed licenses
+###############################################################################
 DISALLOWED=$(comm -23 detected_licenses.txt allowed_licenses_normalized.txt || true)
 
 if [[ -n "$DISALLOWED" ]]; then
