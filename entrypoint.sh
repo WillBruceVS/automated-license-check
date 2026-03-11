@@ -1,6 +1,24 @@
 #!/bin/bash
 set -euo pipefail
 
+# Kill the entire process group on any exit/cancel, so no workers are left behind.
+cleanup() {
+  echo "Cleanup: terminating any child processes in this process group..."
+  # Send TERM to the process group
+  kill -TERM -- -$$ 2>/dev/null || true
+  # Give them a moment to exit gracefully
+  sleep 1
+  # Hard kill any stubborn children
+  kill -KILL -- -$$ 2>/dev/null || true
+}
+trap cleanup EXIT INT TERM
+
+# Ensure GNU timeout is available
+if ! command -v timeout >/dev/null 2>&1; then
+  echo "Error: 'timeout' command not found. Please install coreutils 'timeout' on the runner."
+  exit 1
+fi
+
 CHANGED_FILES_PATH="${1:-}"
 
 REPO_ROOT="/github/workspace"
@@ -25,7 +43,6 @@ tr '[:upper:]' '[:lower:]' < "$ALLOWED_LICENSES_FILE" \
 echo "Allowed licenses:"
 cat allowed_licenses_normalized.txt
 
-
 ###############################################################################
 # Determine scan mode
 ###############################################################################
@@ -49,14 +66,16 @@ else
     FULL_SCAN=true
 fi
 
-
 ###############################################################################
 # Filter out useless filetypes
 ###############################################################################
 if [[ "$FULL_SCAN" == false ]]; then
     FILTERED_TARGETS=()
     for f in "${SCAN_TARGETS[@]}"; do
-        [[ ! "$f" =~ \.(pdf|csv|map|txt)$ ]] && FILTERED_TARGETS+=("$f")
+        # Skip non-source noise files
+        if [[ ! "$f" =~ \.(pdf|csv|map|txt)$ ]]; then
+          FILTERED_TARGETS+=("$f")
+        fi
     done
 
     if [[ ${#FILTERED_TARGETS[@]} -eq 0 ]]; then
@@ -65,6 +84,15 @@ if [[ "$FULL_SCAN" == false ]]; then
     fi
 fi
 
+###############################################################################
+# Helper: run scancode with a hard timeout that kills the whole process tree
+###############################################################################
+run_scancode_with_timeout() {
+  # Usage: run_scancode_with_timeout <duration> <command...>
+  # Sends SIGTERM at <duration>, SIGKILL 30s later if still running.
+  local duration="$1"; shift
+  timeout --signal=TERM -k 30s "$duration" "$@"
+}
 
 ###############################################################################
 # FULL SCAN MODE
@@ -72,19 +100,19 @@ fi
 if [[ "$FULL_SCAN" == true ]]; then
     echo "=== FULL SCAN MODE ==="
 
-    scancode --license \
-             --processes 8 \
-             --timeout 900 \
-             --verbose \
-             --json-pp scan_results_full.json \
-             "$REPO_ROOT"
+    # External timeout enforces a real kill of all workers after 900s (+30s grace)
+    run_scancode_with_timeout 900s \
+      scancode --license \
+               --processes 8 \
+               --timeout 900 \
+               --verbose \
+               --json-pp scan_results_full.json \
+               "$REPO_ROOT"
 
     echo "Extracting license_detections → scan_results.json"
-
     jq '.license_detections // []' scan_results_full.json > scan_results.json
 
 else
-
 ###############################################################################
 # PARTIAL SCAN: ONLY CHANGED FILES
 ###############################################################################
@@ -101,11 +129,12 @@ else
         echo "Running ScanCode on: $abs"
         echo "---------------------------------------------"
 
-        scancode --license \
-                 --processes 4 \
-                 --timeout 300 \
-                 --json-pp sc_tmp/out.json \
-                 "$abs"
+        run_scancode_with_timeout 300s \
+          scancode --license \
+                   --processes 4 \
+                   --timeout 300 \
+                   --json-pp sc_tmp/out.json \
+                   "$abs"
 
         # Append only license detections
         jq -s '
@@ -118,9 +147,7 @@ else
     done
 
     cp sc_tmp/combined.json scan_results.json
-
 fi
-
 
 ###############################################################################
 # Validate result JSON exists
@@ -129,7 +156,6 @@ if [[ ! -s scan_results.json ]]; then
     echo "Error: scan_results.json missing or empty."
     exit 1
 fi
-
 
 ###############################################################################
 # Extract licenses
@@ -152,7 +178,6 @@ if [[ ! -s detected_licenses.txt ]]; then
     echo "No licenses detected — failing."
     exit 1
 fi
-
 
 ###############################################################################
 # Compare to allowed licenses
