@@ -61,7 +61,7 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v6
 
     - name: Run License Compliance Checker
       uses: soheilbr82/automated-license-check@v1
