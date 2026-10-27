@@ -13,11 +13,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Create a directory for the virtual environment
 RUN python -m venv /venv
 
-# Set the PATH environment variable to prioritize the virtual environment
+# Prioritize the virtual environment
 ENV PATH="/venv/bin:$PATH"
 
-# Activate virtual environment and install dependencies
-RUN /bin/bash -c "/venv/bin/pip install --upgrade pip && source /venv/bin/activate && pip install scancode-toolkit"
+# Upgrade pip and install Python dependencies
+RUN pip3 install --upgrade pip && \
+    pip3 install \
+        pyyaml \
+        pluggy==1.6.0 \
+        scancode-toolkit
 
 # Copy the entrypoint script into the image
 COPY entrypoint.sh /entrypoint.sh
@@ -27,6 +31,3 @@ RUN chmod +x /entrypoint.sh
 
 # Set the entrypoint
 ENTRYPOINT ["/entrypoint.sh"]
-
-# Set the entry point
-# CMD ["bash"]
